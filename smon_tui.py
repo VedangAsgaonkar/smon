@@ -227,14 +227,9 @@ class SmonApp(App):
 
     def action_tab(self, tid):
         self.query_one(TabbedContent).active = tid
-        self.call_after_refresh(self.focus_tab, tid)
-
-    def focus_tab(self, tid):
-        self.query_one(f"#{tid} DataTable", DataTable).focus()
-        self.update_meters()
 
     def on_tabbed_content_tab_activated(self, event):
-        self.call_after_refresh(self.focus_tab, event.pane.id)
+        self.call_after_refresh(self.focus_active)
 
     def action_mine(self):
         self.mine = not self.mine
@@ -268,7 +263,10 @@ class SmonApp(App):
 
     def focus_active(self):
         pane = self.query_one(TabbedContent).active
-        self.query_one(f"#{pane} DataTable", DataTable).focus()
+        f = self.focused
+        if not (isinstance(f, DataTable) and any(getattr(a, "id", None) == pane for a in f.ancestors)):
+            self.query_one(f"#{pane} DataTable", DataTable).focus()
+        self.update_meters()
 
     def on_input_changed(self, event):
         self.filter = event.value.strip()
