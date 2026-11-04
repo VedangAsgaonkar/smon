@@ -68,6 +68,11 @@ def gpus_by_type(tres):
     return typed
 
 
+def gpu_keys(tres):
+    typed = [k for k in tres if k.startswith("gres/gpu:")]
+    return typed or (["gres/gpu"] if tres.get("gres/gpu") else [])
+
+
 def split_top(s):
     parts, depth, cur = [], 0, ""
     for c in s:
@@ -423,14 +428,14 @@ def cluster_totals(nodes):
     states = defaultdict(int)
     for n in nodes:
         states[short_state(n.state).split("+")[0].rstrip("*~#!%$@^-")] += 1
-        for k in ["cpu", "mem"] + [k for k in n.cfg if k.startswith("gres/gpu:")]:
+        for k in ["cpu", "mem"] + gpu_keys(n.cfg):
             c = n.cfg.get(k, 0)
             if n.usable:
                 total[k] += c
                 used[k] += n.alloc.get(k, 0)
             else:
                 down[k] += c
-    gpus = sorted((k for k in set(total) | set(down) if k.startswith("gres/gpu:")), key=lambda k: -total[k])
+    gpus = sorted((k for k in set(total) | set(down) if k.startswith("gres/gpu")), key=lambda k: -total[k])
     return gpus, used, total, down, states
 
 
@@ -490,7 +495,7 @@ def meters(snap, status=None):
 def nodes_view(snap):
     rows = []
     for n in snap.nodes.values():
-        gtypes = sorted(k for k in n.cfg if k.startswith("gres/gpu:"))
+        gtypes = sorted(gpu_keys(n.cfg))
         gpu = Text()
         for k in gtypes:
             if gpu:
